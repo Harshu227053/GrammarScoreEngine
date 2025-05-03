@@ -3,6 +3,7 @@ import speech_recognition as sr
 import os
 import tempfile
 import time
+import base64
 
 def transcribe_audio(audio_path):
     """
@@ -54,9 +55,67 @@ def transcribe_audio(audio_path):
             st.error(f"Error processing the audio file: {e}")
         return ""
 
+def get_sample_audio_data():
+    """
+    Create a simulated audio data object for environments where microphone
+    access is not available (like Replit).
+    
+    Returns:
+    --------
+    AudioData
+        A sample audio data object containing sample speech
+    """
+    # Sample text to use for demonstration
+    sample_texts = [
+        "Hello world this is a grammar test",
+        "I have been working on my english skills for many years",
+        "This sentence contains two grammatical error",
+        "She don't like ice cream but I do",
+        "The weather are nice today and we should go outside",
+        "I would of gone to the party if I had been invited",
+        "Between you and I this project is very exciting",
+        "Their going to announce the winners tomorrow morning",
+        "I have went to the store already",
+        "The book was laying on the table all day"
+    ]
+    
+    import random
+    selected_text = random.choice(sample_texts)
+    
+    # Create a temporary WAV file with silent audio
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
+        sample_path = tmp_file.name
+    
+    # Create recognizer and AudioData object with text
+    recognizer = sr.Recognizer()
+    
+    # In a real scenario, we would have actual audio data here
+    # For this simulation, we'll create a minimal AudioData object
+    # and attach our sample text to be returned by recognize_google
+    
+    # Use a very small WAV file as a placeholder
+    with open(sample_path, 'wb') as f:
+        # Write a minimal WAV header for a tiny silent audio clip
+        f.write(base64.b64decode(
+            'UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='))
+    
+    # Create audio data from the sample file
+    with sr.AudioFile(sample_path) as source:
+        audio_data = recognizer.record(source)
+    
+    # Clean up
+    os.remove(sample_path)
+    
+    # Add the selected text as an attribute to be used in simulation
+    audio_data.sample_text = selected_text
+    
+    return audio_data
+
 def record_audio(duration=5):
     """
     Record audio from the microphone for a specified duration.
+    In environments without microphone access (like Replit), 
+    this will simulate recording using sample text.
     
     Parameters:
     -----------
@@ -65,33 +124,62 @@ def record_audio(duration=5):
         
     Returns:
     --------
-    tuple
-        (audio_data, sample_rate) where audio_data is the recorded audio
-        and sample_rate is the sample rate of the recording
+    AudioData
+        The recorded or simulated audio data
     """
-    # Initialize recognizer
-    recognizer = sr.Recognizer()
-    
-    # Set up microphone
     try:
-        with sr.Microphone() as source:
-            # Adjust for ambient noise
-            st.write("Adjusting for ambient noise... Please wait.")
-            recognizer.adjust_for_ambient_noise(source, duration=1)
+        # First try to use an actual microphone
+        recognizer = sr.Recognizer()
+        
+        # Try to initialize the microphone
+        try:
+            # This will fail in Replit environment
+            sr.Microphone()
+            microphone_available = True
+        except (OSError, ImportError, AttributeError) as e:
+            microphone_available = False
+            st.warning("Microphone access is not available in this environment. Using simulated speech instead.")
+        
+        if microphone_available:
+            # Real microphone recording
+            with sr.Microphone() as source:
+                # Adjust for ambient noise
+                st.write("Adjusting for ambient noise... Please wait.")
+                recognizer.adjust_for_ambient_noise(source, duration=1)
+                
+                # Record the audio
+                st.write(f"Recording for {duration} seconds...")
+                audio_data = recognizer.listen(source, timeout=duration, phrase_time_limit=duration)
+                st.write("Recording complete!")
+                
+                return audio_data
+        else:
+            # Simulated recording for environments without microphone
+            st.write(f"Simulating recording for {duration} seconds...")
             
-            # Record the audio
-            st.write(f"Recording for {duration} seconds...")
-            audio_data = recognizer.listen(source, timeout=duration, phrase_time_limit=duration)
-            st.write("Recording complete!")
+            # Add a slight delay to simulate recording time
+            progress_bar = st.progress(0)
+            for i in range(10):
+                time.sleep(duration / 10)
+                progress_bar.progress((i + 1) / 10)
             
-            return audio_data
+            st.success("Simulated recording complete!")
+            
+            # Return simulated audio data
+            return get_sample_audio_data()
+            
     except Exception as e:
-        st.error(f"Error recording audio: {e}")
-        return None
+        st.error(f"Error during audio handling: {e}")
+        
+        # Fall back to simulated data
+        st.warning("Using simulated speech due to recording error.")
+        time.sleep(2)  # Simulate brief processing time
+        return get_sample_audio_data()
 
 def transcribe_from_microphone(audio_data):
     """
     Transcribe recorded audio data from the microphone.
+    For simulated data, returns the sample text.
     
     Parameters:
     -----------
@@ -105,6 +193,10 @@ def transcribe_from_microphone(audio_data):
     """
     if audio_data is None:
         return ""
+        
+    # Check for simulated audio data
+    if hasattr(audio_data, 'sample_text'):
+        return audio_data.sample_text
         
     # Initialize recognizer
     recognizer = sr.Recognizer()
