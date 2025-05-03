@@ -9,6 +9,7 @@ dependencies = [
     "numpy>=2.2.5",
     "pandas>=2.2.3",
     "plotly>=6.0.1",
+    "pyaudio>=0.2.14",
     "speechrecognition>=3.14.2",
     "streamlit>=1.45.0",
 ]
