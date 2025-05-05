@@ -6,7 +6,7 @@ import plotly.express as px
 import tempfile
 import os
 from audio_handler import transcribe_audio, record_audio, transcribe_from_microphone
-from grammar_analyzer import analyze_grammar
+from .grammar_analyzer import analyze_grammar
 from utils import highlight_errors, generate_statistics
 
 st.set_page_config(
