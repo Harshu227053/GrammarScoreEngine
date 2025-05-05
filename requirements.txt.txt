@@ -1,1 +1,6 @@
-ss
+
+streamlit
+pandas
+numpy
+scikit-learn
+sounddevice  # only if you use audio; DO NOT add pyaudio
